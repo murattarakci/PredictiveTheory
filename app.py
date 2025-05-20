@@ -1,9 +1,5 @@
-
-from pathlib import Path
 from shiny import App
-from ui_components import main_ui
-from handlers import server
+from ui_layout import app_ui
+from server import server
 
-
-data_dir = Path(__file__).parent / "data"
-app = App(ui=main_ui(), server=server, static_assets=data_dir)
+app = App(app_ui, server)

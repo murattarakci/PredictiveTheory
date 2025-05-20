@@ -1,5 +1,14 @@
 # OSF based dataset management for research and analyses
 
+### Run Project - POC
+
+#### Imp Note : Delete poc.db before running the latest dev code
+
+1. python -m db.init_db
+2. python -m db.seed_users
+3. shiny run --reload app --port 8500 
+
+
 ## Requirement
 
 ### From research team
@@ -42,6 +51,3 @@ Now scholar is also presented an option to make the repo public, this allows any
 - File System: Maintains the actual datasets and analysis files
 
 
-1. shiny run --reload app.py --port 8500
-2. python -m db.init_db.py
-3. python -m db.seed_users.py

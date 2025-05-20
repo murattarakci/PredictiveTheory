@@ -2,7 +2,7 @@ from db.models import User, init_db, SessionLocal
 from datetime import datetime, timezone
 
 def seed_users():
-    init_db()  # ensure tables exist
+    init_db()
     db = SessionLocal()
 
     users = [
@@ -10,6 +10,7 @@ def seed_users():
         {"username": "bob", "password": "pass2", "role": "peer"},
         {"username": "carol", "password": "pass3", "role": "scholar"},
         {"username": "dave", "password": "pass4", "role": "peer"},
+        {"username": "AMJdemo", "password": "AMJpassword", "role": "scholar"}
     ]
 
     for u in users:
