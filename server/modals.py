@@ -49,7 +49,11 @@ def show_repo_modal(input, db, data_dir): # data_dir might not be needed here if
                         )
                     if has_validation and has_analysis: # Validation only if analysis exists
                         buttons.append(
-                            ui.download_button("download_validation_public", "Download Validation CSV", class_="btn btn-sm btn-outline-success")
+                            ui.download_button("download_validation_public", "Download Validation CSV", class_="btn btn-sm btn-outline-success me-2")
+                        )
+                    if has_analysis:
+                        buttons.append(
+                            ui.download_button("download_analysis_public", "Download Analysis", class_="btn btn-sm btn-outline-success me-2")
                         )
                     
                     if not buttons:
@@ -59,7 +63,7 @@ def show_repo_modal(input, db, data_dir): # data_dir might not be needed here if
                         ui.modal(
                             ui.h4(f"Download Files for '{repo.repo_name}'"),
                             ui.tags.hr(),
-                            ui.div(*buttons, class_="d-flex flex-wrap mt-2 justify-content-center"),
+                            ui.div(*buttons, class_="d-flex flex-wrap justify-content-center gap-2 px-3"),
                             title="Available Public Files",
                             easy_close=True,
                             footer=ui.modal_button("Dismiss", class_="btn btn-secondary")

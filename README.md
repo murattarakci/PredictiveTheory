@@ -51,3 +51,44 @@ Now scholar is also presented an option to make the repo public, this allows any
 - File System: Maintains the actual datasets and analysis files
 
 
+## TODOS (Feedback 24/04/2025)
+
+1.  ⁠loader for waiting for columns to appear once dataset has been upload - COMPLETED
+2. ⁠deduplication of column names(permno appears 2 times)
+3. ⁠⁠unique id is not needed but the selected column (e.g. permno) should be exclusive in train, test, val sets no repeat case.
+4. ⁠sholar cannot reupload same dataset once analysis is uploaded - Completed
+5. ⁠more guiding/walkthrough help
+6. ⁠Analysis has been uploaded information ( to justify validation set download) - Completed
+7. ⁠unlock .rda, csv, .xlsx, .dta  for dataset uploads - Completed
+8. upload analysis is a word/pdf , render it in the public set - Completed
+9. ⁠user can only leave column selection blank for random row spit or user can select one column (see point no 3)
+10. Generic info/use on main page
+
+
+## Dataset Column Handling and Splitting Logic 
+
+Here's a breakdown of how it addresses the "repeated columns" and "unique IDs" concern for column selection:
+
+No More Simple Suffixing for Display: Instead of just showing all columns with suffixes if they had duplicate names (e.g., permno, permno.1, permno.2)
+
+Identifies Original Duplicates: It first figures out which columns in your uploaded file originally had the same name (e.g., two columns were both named "permno").
+
+Selects the "Best" Representative: If there were multiple columns with the same original name, the code now analyzes these versions. It selects the one that has:
+More non-missing data.
+More unique values (as a tie-breaker).
+
+Shows Only the "Best" or Original Unique Columns: The dropdown list for selecting the "Column for Exclusive Split" will then only show: Columns that had unique names from the start.
+
+The single "best" representative column chosen from any group of originally duplicated columns.
+So, if your input file had columnA, columnB, columnA (where the two columnAs might have slightly different data), the process would be:
+
+The system reads them, and pandas might initially name them columnA, columnB, columnA.1.
+The new logic in handlers.py identifies that columnA and columnA.1 originated from the same name ("columnA").
+It compares columnA and columnA.1 based on data content (non-missing values, unique values).
+Let's say columnA is determined to be "better" or more relevant.
+The dropdown you see for splitting will then show columnA (the chosen one) and columnB. It will not show columnA.1.
+This way, you get a cleaner list of columns to choose from, and for any original duplications, the system tries to pick the most data-rich version to offer for your ID-based split.
+preventing clutter from multiple versions of the same original column and guiding towards the most data-rich option for splits.
+
+If you choose "None (Random Split)" or do not select an column, the dataset will be split into train, test, and validation sets randomly based on the specified ratios, without ensuring exclusivity for any particular column's values.
+
