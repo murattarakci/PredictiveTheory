@@ -1,6 +1,8 @@
 from shiny import Inputs, Outputs, Session, render, ui
-from server.state import current_user, repo_refresh_trigger # Ensure repo_refresh_trigger is imported
+from server.state import current_user, repo_refresh_trigger, selected_repo_id # Ensure repo_refresh_trigger is imported
+from urllib.parse import parse_qs
 from server.views import homepage_ui, scholar_dashboard_ui
+from shiny import reactive, ui
 from server.handlers import (
     login_handler,
     logout_handler,
@@ -14,14 +16,11 @@ from server.handlers import (
     register_public_downloads
 )
 from server.modals import show_repo_modal
-from db.models import SessionLocal, User # Ensure User is imported
+from db.models import Repository, SessionLocal, User, VisibilityEnum # Ensure User is imported
 from pathlib import Path
 import asyncio
 import logging # Import logging
 
-# Define the data directory path.
-# Assuming 'data' is at the project root (same level as app.py)
-# and this main.py is inside a 'server' directory.
 PROJECT_ROOT_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 logger = logging.getLogger("app_debug") # Get logger instance for main server if needed
 
@@ -67,16 +66,107 @@ def server(input: Inputs, output: Outputs, session: Session):
         else:
             # This ID "login_main_btn" is what the modified handlers.py expects
             return ui.input_action_button("login_main_btn", "Login", class_="btn-sm btn-light")
-
+    
     @render.ui
     def homepage_content_ui():
-        """
-        Renders the content for the 'Public Datasets' nav panel.
-        This now depends on repo_refresh_trigger to update when repo visibility changes.
-        """
-        _ = repo_refresh_trigger.get() # Establish reactive dependency
-        logger.debug(f"[HOMEPAGE_UI_REFRESH] Trigger value: {repo_refresh_trigger.get()}")
-        return homepage_ui(db)
+        _ = repo_refresh_trigger.get()
+        query_string = session.clientdata.url_search()
+        params = parse_qs(query_string.lstrip('?'))
+        share_token = params.get("share", [None])[0]
+
+        return ui.page_fluid(
+            # Bootstrap icons stylesheet
+            ui.HTML('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">'),
+
+            # Main content section
+            ui.div(
+                ui.h1("Welcome to OSF Datasets Sandbox", class_="display-4 fw-bold mb-4"),
+                ui.p(
+                    "A research data repository where scholars and peers upload, analyze, and share datasets with precision and privacy.",
+                    class_="lead text-muted"
+                ),
+                # Buttons Section: Get Started and Learn More
+                ui.div(
+                    ui.input_action_button(
+                        "learn_more", 
+                        ui.HTML('<i class="bi bi-info-circle me-2"></i>Learn More'), 
+                        class_="btn btn-outline-secondary btn-lg hover-shadow"
+                    ),
+                    class_="mb-5 text-center"
+                ),
+                class_="text-center mt-4"
+            ),
+
+            # Column-based layout for additional features
+            ui.layout_columns(
+                # Upload Datasets Card
+                ui.card(
+                    ui.HTML('<h4 class="card-title"><i class="bi bi-upload me-2"></i>Upload Datasets</h4>'),
+                    ui.p(
+                        "Supports `.rda`, `.rds`, `.csv`, and `.xlsx` formats. Automatically checks for stratifiable columns.",
+                        class_="text-muted"
+                    ),
+                    class_="shadow-sm p-3 hover-shadow"
+                ),
+                # Analyze Securely Card
+                ui.card(
+                    ui.HTML('<h4 class="card-title"><i class="bi bi-bar-chart-line me-2"></i>Analyze Securely</h4>'),
+                    ui.p(
+                        "Split, validate, and inspect datasets in a controlled environment. Maintain audit trails for every step.",
+                        class_="text-muted"
+                    ),
+                    class_="shadow-sm p-3 hover-shadow"
+                ),
+                # Share & Collaborate Card
+                ui.card(
+                    ui.HTML('<h4 class="card-title"><i class="bi bi-share me-2"></i>Share & Collaborate</h4>'),
+                    ui.p(
+                        "Set visibility to Private, Embargoed, or Public. Generate shareable links and collaborate with peers.",
+                        class_="text-muted"
+                    ),
+                    class_="shadow-sm p-3 hover-shadow"
+                ),
+                col_widths=4,  # Equal width columns
+                class_="mb-5"
+            ),
+            
+            # Displaying shared content (from external function)
+            homepage_ui(db, share_token=share_token)
+        )
+
+
+    @reactive.Effect
+    def handle_learn_more():
+        if input.learn_more():
+            modal_content = ui.modal(
+                ui.h4("Learn More"),
+                ui.p("OSF Datasets Sandbox allows researchers to securely upload, analyze, and share datasets."),
+                ui.p("Key features include dataset upload, analysis tools, and flexible sharing options."),
+                ui.p("Collaborate with peers by setting visibility levels to Private, Embargoed, or Public."),
+                footer=ui.modal_button("Close"),
+                size="m",  # Optional: specify modal size
+                easy_close=True  # Optional: allow closing by clicking outside
+            )
+            ui.modal_show(modal_content)
+
+
+
+    # Hover effect styles (add to custom CSS or in-line styles)
+    css = """
+    .hover-shadow:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 0 12px rgba(0, 0, 0, 0.1);
+        transition: box-shadow 0.3s ease-in-out;
+    }
+
+    .hover-shadow {
+        transition: box-shadow 0.3s ease-in-out;
+    }
+    """
+    ui.HTML(f'<style>{css}</style>')
+
+
+
+
 
     @render.ui
     def dashboard_content_ui():

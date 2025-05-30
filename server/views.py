@@ -1,13 +1,23 @@
 from shiny import ui, render
 from db.models import Repository, VisibilityEnum, Dataset
-from server.state import search_query, repo_refresh_trigger # Ensure repo_refresh_trigger is imported
+from server.state import search_query, repo_refresh_trigger, selected_repo_id # Ensure repo_refresh_trigger is imported
 import logging
-def homepage_ui(db):
-    # This UI doesn't typically need to auto-refresh from repo_creation_handler,
-    # but if it did, the query would also need to be inside a reactive expression or render.ui
-    public_repos = db.query(Repository).filter(
-        Repository.visibility == VisibilityEnum.PUBLIC
-    ).order_by(Repository.created_at.desc()).all()
+
+
+
+def homepage_ui(db, share_token=None):
+    if share_token:
+        repo = db.query(Repository).filter_by(permalink=share_token).first()
+        if not repo or repo.visibility != VisibilityEnum.PUBLIC:
+            return ui.div(
+                ui.h3("Public Datasets"),
+                ui.p("No matching public repository found.")
+            )
+        public_repos = [repo]
+    else:
+        public_repos = db.query(Repository).filter(
+            Repository.visibility == VisibilityEnum.PUBLIC
+        ).order_by(Repository.created_at.desc()).all()
 
     if not public_repos:
         return ui.div(
@@ -22,11 +32,11 @@ def homepage_ui(db):
                 ui.h4(repo.repo_name),
                 ui.p(repo.description or "No description."),
                 ui.p(f"Uploaded: {repo.created_at.strftime('%Y-%m-%d')}"),
-                # This button ID needs to be handled by show_repo_modal in modals.py
                 ui.input_action_button(f"open_repo_{repo.id}", "Download Files")
             ) for repo in public_repos
         ]
     )
+
 
 
 def scholar_dashboard_ui(db, user):
@@ -86,27 +96,15 @@ def scholar_dashboard_ui(db, user):
                 ui.div(f"Created: {repo.created_at.strftime('%Y-%m-%d %H:%M')}", class_="small text-muted mb-2"),
                 ui.div(
                     # Button IDs here must match those watched in handlers.py (e.g., watch_edit_repo)
-                    ui.input_action_button(f"edit_repo_{repo.id}", "Edit / Download", class_="btn btn-sm btn-outline-primary me-2"),
+                    ui.input_action_button(f"edit_repo_{repo.id}", "Edit", class_="btn btn-sm btn-outline-primary me-2"),
                     ui.input_action_button(f"upload_analysis_{repo.id}", "Upload Analysis", class_="btn btn-sm btn-outline-secondary me-2"),
-                    # Add the "Upload Dataset (Re-split)" button here if it's per-repo
-                    ui.input_action_button(f"upload_dataset_{repo.id}", "Re-Split Dataset", class_="btn btn-sm btn-outline-info"),
+                    None if has_analysis else ui.input_action_button(
+                        f"upload_dataset_{repo.id}", "Re-Split Dataset", class_="btn btn-sm btn-outline-info"
+                    ),
                     class_="d-flex flex-wrap gap-2"
                 )
             ]
             
-            # Add permalink if applicable
-            if has_analysis and repo.visibility in [VisibilityEnum.EMBARGOED, VisibilityEnum.PUBLIC] and repo.permalink:
-                card_content.append(
-                    ui.div(
-                        ui.strong("Permalink: "),
-                        ui.a(f"/share/{repo.permalink}", href=f"/share/{repo.permalink}", target="_blank", class_="small"),
-                        class_="mt-1 small"
-                    )
-                )
-            else:
-                 card_content.append(ui.div(ui.strong("Permalink: "), ui.span("Not available", class_="small text-muted"), class_="mt-1 small"))
-
-
             card = ui.div(
                 ui.card(
                     ui.card_header(ui.h5(repo.repo_name)),
