@@ -1,6 +1,25 @@
 # OSF based dataset management for research and analyses
 
 ### Run Project - POC
+# open the project in rstudio
+# set up local from project's location
+python -m venv venv
+source venv/bin/activate
+
+# set up users database
+python -m db.init_db
+python -m db.seed_users
+
+# run app
+shiny run --reload app --port 8500
+
+#deploy
+pip install rsconnect-python
+
+#fill in the details from your shinyapps account
+rsconnect add --account ACCOUNT --name NAME --token TOKEN --secret SECRET
+rsconnect deploy shiny LOCATION_TO_APP_FOLDER --name NAME --title your_app_name
+
 
 #### Imp Note : Delete poc.db before running the latest dev code
 

@@ -7,6 +7,11 @@ from htmltools import tags
 import re
 import pandas as pd
 
+from typing import Union, Optional
+from pathlib import Path
+import pandas as pd
+
+
 from shiny import reactive, ui, render
 from db.models import Repository, User, Dataset, VisibilityEnum
 from .state import (
@@ -96,7 +101,7 @@ def _make_unique_columns_final(df: pd.DataFrame) -> pd.DataFrame:
         logger.info(f"Deduplication: Original columns: {original_cols_for_log}. Made unique: {list(df.columns)}")
     return df
 
-def read_dataframe(file_path: Path | str) -> pd.DataFrame | None:
+def read_dataframe(file_path: Union[Path, str]) -> Optional[pd.DataFrame]:
     df = None
     try:
         file_path_obj = Path(file_path)

@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from typing import Optional
 import numpy as np # For shuffling IDs
 import logging
 
@@ -7,7 +8,7 @@ logger = logging.getLogger("app_debug") # Use the same logger as handlers
 
 def split_dataset(df: pd.DataFrame,
                   ratios: tuple[float, float, float], # e.g., (0.7, 0.15, 0.15) for train, test, val
-                  exclusive_id_column: str | None = None,
+                  exclusive_id_column: Optional[str] = None,
                   random_state: int = 42) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Splits a DataFrame into train, validation, and test sets.
