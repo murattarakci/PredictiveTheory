@@ -41,19 +41,19 @@ def show_repo_modal(input, db, data_dir): # data_dir might not be needed here if
                     buttons = []
                     if has_train:
                         buttons.append(
-                            ui.download_button("download_train_public", "Download Train CSV", class_="btn btn-sm btn-outline-success me-2")
+                            ui.download_button("download_train_public", "Training set (CSV)", class_="btn btn-sm btn-outline-success me-2")
                         )
                     if has_test:
                         buttons.append(
-                            ui.download_button("download_test_public", "Download Test CSV", class_="btn btn-sm btn-outline-success me-2")
+                            ui.download_button("download_test_public", "Test set (CSV)", class_="btn btn-sm btn-outline-success me-2")
                         )
                     if has_validation and has_analysis: # Validation only if analysis exists
                         buttons.append(
-                            ui.download_button("download_validation_public", "Download Validation CSV", class_="btn btn-sm btn-outline-success me-2")
+                            ui.download_button("download_validation_public", "Validation (CSV)", class_="btn btn-sm btn-outline-success me-2")
                         )
                     if has_analysis:
                         buttons.append(
-                            ui.download_button("download_analysis_public", "Download Analysis", class_="btn btn-sm btn-outline-success me-2")
+                            ui.download_button("download_analysis_public", "Analysis", class_="btn btn-sm btn-outline-success me-2")
                         )
                     
                     if not buttons:
