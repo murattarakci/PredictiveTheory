@@ -23,7 +23,7 @@ app_ui = ui.page_navbar(
 
     # --- Start of Keyword Arguments for page_navbar ---
     # All keyword arguments MUST come after ALL positional arguments.
-    title="Predictive Theorizing",    # Keyword argument for the main title/brand
+    title="OSF Integration",    # Keyword argument for the main title/brand
     theme=theme.flatly,         # Keyword argument for the theme
     # position="fixed-top",     # Optional keyword argument
     # id="main_navbar"          # Optional keyword argument

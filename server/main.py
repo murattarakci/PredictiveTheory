@@ -85,9 +85,9 @@ def server(input: Inputs, output: Outputs, session: Session):
 
             # Main content section
             ui.div(
-                ui.h1("Welcome to the Repository for Predictive Theorizing", class_="display-4 fw-bold mb-4"),
+                ui.h1("Welcome to OSF Datasets Sandbox", class_="display-4 fw-bold mb-4"),
                 ui.p(
-                    "A research data repository where scholars upload, analyze, and share datasets enabling precdictive theorizing.",
+                    "A research data repository where scholars and peers upload, analyze, and share datasets with precision and privacy.",
                     class_="lead text-muted"
                 ),
                 # Buttons Section: Get Started and Learn More
@@ -108,7 +108,7 @@ def server(input: Inputs, output: Outputs, session: Session):
                 ui.card(
                     ui.HTML('<h4 class="card-title"><i class="bi bi-upload me-2"></i>Upload Datasets</h4>'),
                     ui.p(
-                        "Supports `.rda`, `.rds`, `.csv`, and `.xlsx` formats. Automatically checks for variables for cross-validation.",
+                        "Supports `.rda`, `.rds`, `.csv`, and `.xlsx` formats. Automatically checks for stratifiable columns.",
                         class_="text-muted"
                     ),
                     class_="shadow-sm p-3 hover-shadow"
@@ -145,7 +145,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         if input.learn_more():
             modal_content = ui.modal(
                 ui.h4("Learn More"),
-                ui.p("This repository allows researchers to securely upload, analyze, and share datasets."),
+                ui.p("OSF Datasets Sandbox allows researchers to securely upload, analyze, and share datasets."),
                 ui.p("Key features include dataset upload, analysis tools, and flexible sharing options."),
                 ui.p("Collaborate with peers by setting visibility levels to Private, Embargoed, or Public."),
                 footer=ui.modal_button("Close"),

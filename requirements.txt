@@ -4,5 +4,3 @@ scikit-learn
 sqlalchemy
 pyreadr
 shinyswatch
-sqlalchemy
-pandas
