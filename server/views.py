@@ -101,6 +101,7 @@ def scholar_dashboard_ui(db, user):
                     None if has_analysis else ui.input_action_button(
                         f"upload_dataset_{repo.id}", "Re-Split Dataset", class_="btn btn-sm btn-outline-info"
                     ),
+                    ui.input_action_button(f"delete_repo_{repo.id}", "Delete", class_="btn btn-sm btn-outline-danger"),
                     class_="d-flex flex-wrap gap-2"
                 )
             ]

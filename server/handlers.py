@@ -44,6 +44,8 @@ is_column_loading = reactive.Value(False)
 available_columns_for_resplit_id = reactive.Value([])
 creation_preview_content = reactive.Value(None)
 resplit_preview_content = reactive.Value(None)
+handled_delete_clicks = set()
+file_ready_for_split = reactive.Value(False)
 
 
 # --- LOGIN HANDLER ---
@@ -56,7 +58,7 @@ def login_handler(input, db):
             ui.modal(
                 ui.h4("Login As"),
                 ui.input_action_button("login_as_scholar_btn", "Login as Scholar", class_="btn-primary w-100 mb-2"),
-                ui.input_action_button("login_as_peer_btn", "Login as Peer", class_="btn-secondary w-100"),
+                # ui.input_action_button("login_as_peer_btn", "Login as Peer", class_="btn-secondary w-100"),
                 title="Select Login Type", easy_close=True, footer=None
             )
         )
@@ -239,7 +241,9 @@ async def repo_creation_handler(input, db, session):
     def dynamic_id_column_input_ui():
         cols_or_message = available_columns_for_id_split.get()
         if not cols_or_message:
-            return ui.p("Upload dataset to see column options.", class_="text-muted small mt-2")
+            return ui.input_selectize("new_repo_id_column", "ID Column for Exclusive Split (Optional):",
+                                      selected="", choices={"Upload dataset to see column options.":"Upload dataset to see column options."}, width='100%')
+            # return ui.p("Upload dataset to see column options.")
         is_message_list = isinstance(cols_or_message, list) and len(cols_or_message) > 0 and \
                           ("Error:" in str(cols_or_message[0]) or "Info:" in str(cols_or_message[0])) and \
                           len(cols_or_message) == 1
@@ -269,19 +273,19 @@ async def repo_creation_handler(input, db, session):
             logger.warning("[CREATE_REPO] No current user, cannot show create modal.")
             return
         dataset_input = ui.input_file("new_repo_dataset_file", "Upload Dataset (.rda, .rds, .csv, .xlsx, .dta)",
-                                      accept=supported_extensions_for_upload)
+                                      accept=supported_extensions_for_upload, width='100%')
         ui.modal_show(
             ui.modal(
-                ui.input_text("new_repo_name", "Repository Name"),
-                ui.input_text("new_repo_description", "Description (Optional)"),
+                ui.input_text("new_repo_name", "Repository Name", width='100%'),
+                ui.input_text("new_repo_description", "Description (Optional)", width='100%'),
                 ui.input_select("new_repo_visibility", "Visibility",
                     {vis.name: vis.value.capitalize() for vis in VisibilityEnum},
-                    selected=VisibilityEnum.PRIVATE.name),
+                    selected=VisibilityEnum.PRIVATE.name, width='100%'),
                 dataset_input,
-                ui.output_ui("dynamic_id_column_input_ui"),
+                ui.output_ui("dynamic_id_column_input_ui", width='100%'),
                 ui.input_select("new_repo_split_ratio_str", "Split Ratio",
                     {"0.7,0.15,0.15": "70/15/15", "0.6,0.2,0.2": "60/20/20", "0.8,0.1,0.1": "80/10/10"},
-                    selected="0.7,0.15,0.15"),
+                    selected="0.7,0.15,0.15", width='100%'),
                 ui.input_action_button("preview_creation_split_btn", "Preview Split", class_="btn-info btn-sm mt-2 mb-3 w-100"),
                 ui.input_action_button("submit_new_repo_creation", "Create Repository", class_="btn-primary w-100"),
                 # --- New Preview Area ---
@@ -769,7 +773,6 @@ def watch_edit_repo(input, db):
         else: 
             return ui.span(" (Validation set not available)", class_="small text-muted")
 
-
 def handle_submit_repo_edit(input, db):
     @reactive.effect
     @reactive.event(input.submit_repo_changes)
@@ -889,3 +892,61 @@ def register_public_downloads(db, data_dir=PROJECT_ROOT_DATA_DIR):
     def download_analysis_public():
         path_or_error = _get_download_path(db, data_dir, current_user, selected_repo_id, "analysis", is_public=True)
         return path_or_error if not path_or_error.startswith("Error:") else _generate_error_response_dl(path_or_error)
+<<<<<<< Updated upstream
+=======
+    
+   
+#  <---------------------------------Delete Repo Logic-------------------------------->
+
+def delete_repo(db, repo_id):
+    repo = db.query(Repository).filter_by(id=repo_id).first()
+    if not repo:
+        raise ValueError(f"Repository with ID {repo_id} not found.")
+
+    for dataset in repo.datasets:
+        db.delete(dataset)
+    
+    db.delete(repo)
+    db.commit()
+
+def watch_delete_repo_buttons(user_input, db):
+    @reactive.Effect
+    def _():
+        _ = repo_refresh_trigger.get()
+        all_repos = db.query(Repository).all()
+        for repo in all_repos:
+            if repo.id not in handled_delete_clicks:
+                make_delete_modal_effect(user_input, repo.id, repo.repo_name)
+                make_confirm_delete_effect(user_input, repo.id, db)
+                handled_delete_clicks.add(repo.id)
+
+def make_delete_modal_effect(user_input, repo_id, repo_name):
+    @reactive.Effect
+    @reactive.event(user_input[f"delete_repo_{repo_id}"])
+    def _show_modal():
+        ui.modal_show(
+            ui.modal(
+                ui.p(f"Are you sure you want to delete '{repo_name}'? This cannot be undone."),
+                title="Confirm Deletion",
+                easy_close=False,
+                fade=False,
+                footer=(
+                    ui.modal_button("Cancel"),
+                    ui.input_action_button(
+                        f"confirm_delete_repo_{repo_id}",
+                        "Delete",
+                        class_="btn btn-danger"
+                    )
+                )
+            )
+        )
+
+def make_confirm_delete_effect(user_input, repo_id, db):
+    @reactive.Effect
+    @reactive.event(user_input[f"confirm_delete_repo_{repo_id}"])
+    def _confirm_delete():
+        delete_repo(db, repo_id)
+        ui.modal_remove()
+        repo_refresh_trigger.set(repo_refresh_trigger.get() + 1)
+
+>>>>>>> Stashed changes

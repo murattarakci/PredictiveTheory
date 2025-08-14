@@ -13,7 +13,9 @@ from server.handlers import (
     handle_submit_repo_edit,
     watch_repo_search,
     register_static_downloads,
-    register_public_downloads
+    register_public_downloads,
+    watch_delete_repo_buttons
+
 )
 from server.modals import show_repo_modal
 from db.models import Repository, SessionLocal, User, VisibilityEnum # Ensure User is imported
@@ -46,11 +48,14 @@ def server(input: Inputs, output: Outputs, session: Session):
     watch_edit_repo(input, db) # This contains a nested @render.ui, which is fine
     handle_submit_repo_edit(input, db)
     watch_repo_search(input)
+    watch_delete_repo_buttons(input, db)
     
     # Register download handlers. These functions are @render.download,
     # so calling their parent registration function makes them available.
     register_static_downloads(db, PROJECT_ROOT_DATA_DIR)
     register_public_downloads(db, PROJECT_ROOT_DATA_DIR)
+    watch_delete_repo_buttons(input, db)
+
 
 
     @render.ui
