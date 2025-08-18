@@ -85,7 +85,7 @@ def server(input: Inputs, output: Outputs, session: Session):
 
             # Main content section
             ui.div(
-                ui.h1("Welcome to OSF Datasets Sandbox", class_="display-4 fw-bold mb-4"),
+                ui.h1("Welcome to Predictive Theorizing And Testing Datasets Sandbox", class_="display-4 fw-bold mb-4"),
                 ui.p(
                     "A research data repository where scholars and peers upload, analyze, and share datasets with precision and privacy.",
                     class_="lead text-muted"
@@ -145,7 +145,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         if input.learn_more():
             modal_content = ui.modal(
                 ui.h4("Learn More"),
-                ui.p("OSF Datasets Sandbox allows researchers to securely upload, analyze, and share datasets."),
+                ui.p("Predictive Theorizing And Testing Datasets Sandbox allows researchers to securely upload, analyze, and share datasets."),
                 ui.p("Key features include dataset upload, analysis tools, and flexible sharing options."),
                 ui.p("Collaborate with peers by setting visibility levels to Private, Embargoed, or Public."),
                 footer=ui.modal_button("Close"),

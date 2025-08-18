@@ -5,8 +5,9 @@ app_ui = ui.page_navbar(
     # --- Start of Positional Arguments (*args) for page_navbar ---
     # These are the main content items for the navbar: tabs, spacers, controls.
 
-    ui.nav_panel("Public Datasets", ui.output_ui("homepage_content_ui")),
-    ui.nav_panel("My Dashboard", ui.output_ui("dashboard_content_ui")),
+    ui.nav_panel("Public Datasets", ui.output_ui("homepage_content_ui"), value="public_tab"),
+    ui.nav_panel("My Dashboard", ui.output_ui("dashboard_content_ui"), value="dashboard_tab"),
+
 
     # ui.nav_spacer() is a positional argument. It attempts to push subsequent items.
     ui.nav_spacer(),
@@ -23,9 +24,9 @@ app_ui = ui.page_navbar(
 
     # --- Start of Keyword Arguments for page_navbar ---
     # All keyword arguments MUST come after ALL positional arguments.
-    title="OSF Integration",    # Keyword argument for the main title/brand
+    title="Predictive Theorizing And Testing",    # Keyword argument for the main title/brand
     theme=theme.flatly,         # Keyword argument for the theme
     # position="fixed-top",     # Optional keyword argument
-    # id="main_navbar"          # Optional keyword argument
+    id="main_navs"          # Optional keyword argument
     # --- End of Keyword Arguments ---
 )

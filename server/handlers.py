@@ -84,6 +84,7 @@ def login_handler(input, db):
         if user:
             logger.debug(f"[LOGIN_HANDLER] User '{user.username}' role '{user.role}'."); current_user.set(user)
             ui.notification_show(f"Login successful as {user.username} ({user.role}).", type="message")
+            ui.update_navs("main_navs", selected="dashboard_tab")
         else:
             logger.debug("[LOGIN_HANDLER] Invalid credentials."); ui.notification_show("Invalid credentials.", type="error")
             current_user.set(None)
