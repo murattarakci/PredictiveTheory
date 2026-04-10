@@ -465,20 +465,22 @@ async def upload_split_handler(input, db, data_dir=PROJECT_ROOT_DATA_DIR):
     @reactive.effect 
     def _read_columns_for_resplit_modal():
         
-        file_info = input.uploaded_csv_for_resplit() 
+        file_info = input.uploaded_file_for_resplit()
         if not file_info or len(file_info) == 0: available_columns_for_resplit_id.set([]); return
         resplit_preview_content.set(None) # Clear preview on new file upload
         file_path = Path(file_info[0]["datapath"])
         df = None
         try:
-            if file_path.suffix.lower() == ".csv": 
-                df = read_dataframe(file_path)
-            else: 
-                available_columns_for_resplit_id.set([f"Error: Use CSV for re-split. ('{file_path.suffix}' unsupported)"]); return
-            
+            suf = file_path.suffix.lower()
+            if suf not in APP_SUPPORTED_EXTENSIONS:
+                available_columns_for_resplit_id.set([
+                    f"Error: Unsupported file type '{suf}'. Use: {', '.join(APP_SUPPORTED_EXTENSIONS)}."
+                ])
+                return
+            df = read_dataframe(file_path)
             if df is not None:
                 if df.empty:
-                    available_columns_for_resplit_id.set(["Info: Uploaded CSV for re-split is empty."]); return
+                    available_columns_for_resplit_id.set(["Info: Uploaded dataset is empty."]); return
                 base_name_order, grouped_cols_by_base = _get_column_groups_by_base_name(df)
                 final_columns_for_ui_resplit = []
                 if base_name_order:
@@ -490,18 +492,18 @@ async def upload_split_handler(input, db, data_dir=PROJECT_ROOT_DATA_DIR):
                 
                 if final_columns_for_ui_resplit: available_columns_for_resplit_id.set(final_columns_for_ui_resplit)
                 elif df.columns.any(): available_columns_for_resplit_id.set(["Info: No suitable columns after analysis."])
-                else: available_columns_for_resplit_id.set(["Info: Uploaded CSV has no columns."])
-            else: available_columns_for_resplit_id.set(["Error: Could not read data from CSV for re-split."])
+                else: available_columns_for_resplit_id.set(["Info: Uploaded dataset has no columns."])
+            else: available_columns_for_resplit_id.set(["Error: Could not read data from file for re-split."])
         except Exception as e:
             logger.error(f"Error reading/processing columns for resplit: {e}", exc_info=True)
-            available_columns_for_resplit_id.set([f"Error processing CSV for column selection: {str(e)[:100]}"])
+            available_columns_for_resplit_id.set([f"Error processing file for column selection: {str(e)[:100]}"])
 
     @render.ui 
     def dynamic_id_column_for_resplit_ui(): 
         cols_or_message = available_columns_for_resplit_id.get()
         label_text = "ID Column for Exclusive Re-Split (Optional):"
         if not cols_or_message:
-            return ui.p("Upload CSV for re-splitting options.", class_="text-muted small")
+            return ui.p("Upload a dataset file for re-split options (same formats as Create Repository).", class_="text-muted small")
         is_message_list = isinstance(cols_or_message, list) and len(cols_or_message) > 0 and \
                           ("Error:" in str(cols_or_message[0]) or "Info:" in str(cols_or_message[0])) and \
                           len(cols_or_message) == 1
@@ -532,7 +534,11 @@ async def upload_split_handler(input, db, data_dir=PROJECT_ROOT_DATA_DIR):
                     current_handled_set = handled_clicks.get().copy(); current_handled_set.add(btn_id); handled_clicks.set(current_handled_set)
                     ui.modal_show(
                         ui.modal(
-                            ui.input_file("uploaded_csv_for_resplit", "Upload New CSV to Re-Split", accept=[".csv"]),
+                            ui.input_file(
+                                "uploaded_file_for_resplit",
+                                "Upload New Dataset to Re-Split",
+                                accept=APP_SUPPORTED_EXTENSIONS,
+                            ),
                             ui.output_ui("dynamic_id_column_for_resplit_ui"), 
                             ui.input_select("split_ratio_for_resplit", "New Split Ratio", 
                                             {"0.7-0.15-0.15": "70/15/15", "0.6-0.2-0.2": "60/20/20", "0.8-0.1-0.1": "80/10/10"}, 
@@ -560,12 +566,12 @@ async def upload_split_handler(input, db, data_dir=PROJECT_ROOT_DATA_DIR):
         await asyncio.sleep(0.1)
         
         try:
-            file_info = input.uploaded_csv_for_resplit()
+            file_info = input.uploaded_file_for_resplit()
             id_col_input_val = input.resplit_id_column()
             ratio_str_input_val = input.split_ratio_for_resplit()
 
             if not file_info:
-                raise ValueError("Please upload a CSV file first to preview the re-split.")
+                raise ValueError("Please upload a dataset file first to preview the re-split.")
             if not ratio_str_input_val:
                 raise ValueError("Please select a new split ratio to preview.")
             
@@ -615,7 +621,7 @@ async def upload_split_handler(input, db, data_dir=PROJECT_ROOT_DATA_DIR):
     @reactive.event(input.submit_resplit_data)
     async def _handle_resplit_data():
         logger.info(f"[RESPLIT] Submit button clicked.")
-        file_info = input.uploaded_csv_for_resplit()
+        file_info = input.uploaded_file_for_resplit()
         if not file_info or len(file_info) == 0: ui.notification_show("No file for re-split.", type="error"); return
         user = current_user.get(); repo_id = selected_repo_id.get()
         if not (user and repo_id): ui.notification_show("Session invalid or repo not selected.", type="error"); return
@@ -636,9 +642,13 @@ async def upload_split_handler(input, db, data_dir=PROJECT_ROOT_DATA_DIR):
                 exclusive_id_col_resplit = selected_id_col_resplit_input.strip()
             
             temp_file_path = Path(file_info[0]["datapath"])
+            if temp_file_path.suffix.lower() not in APP_SUPPORTED_EXTENSIONS:
+                raise ValueError(
+                    f"Unsupported file type. Use one of: {', '.join(APP_SUPPORTED_EXTENSIONS)}."
+                )
             df_for_resplit = read_dataframe(temp_file_path)
             if df_for_resplit is None or df_for_resplit.empty:
-                raise ValueError("Could not read or process CSV for re-splitting, or it's empty.")
+                raise ValueError("Could not read or process the file for re-splitting, or it's empty.")
             if exclusive_id_col_resplit and exclusive_id_col_resplit not in df_for_resplit.columns:
                  raise ValueError(f"Selected ID column '{exclusive_id_col_resplit}' not in processed dataset columns.")
         except ValueError as ve: 
