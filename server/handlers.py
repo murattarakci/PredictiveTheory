@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 import asyncio
 import zipfile
@@ -30,6 +31,22 @@ logger.info("Logger initialized for handlers.py")
 # --- Module-Level Constants and Helpers ---
 PROJECT_ROOT_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 PROJECT_ROOT_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+
+async def _dropbox_sync_data_paths(paths: list[Path]) -> None:
+    from utils.dropbox_token import is_dropbox_configured
+
+    if not is_dropbox_configured():
+        return
+    from utils.dropbox_data import upload_data_paths
+
+    await asyncio.to_thread(upload_data_paths, paths)
+
+
+def _user_data_dir_segment(user: User) -> str:
+    """Opaque path segment for data/ (synced to Dropbox). Uses user id so usernames are not in remote paths."""
+    return str(user.id)
+
 
 APP_SUPPORTED_EXTENSIONS = [".rds", ".rda", ".csv", ".xlsx", ".dta"]
 
@@ -110,9 +127,9 @@ def read_dataframe(file_path: Path | str) -> pd.DataFrame | None:
         elif file_suffix_lower == ".rda":
             result = pyreadr.read_r(str(file_path_obj)); df = next(iter(result.values()))
         elif file_suffix_lower == ".csv":
-            df = pd.read_csv(file_path_obj, mangle_dupe_cols=True)
+            df = pd.read_csv(file_path_obj)
         elif file_suffix_lower == ".xlsx":
-            df = pd.read_excel(file_path_obj, mangle_dupe_cols=True)
+            df = pd.read_excel(file_path_obj)
         elif file_suffix_lower == ".dta":
             df = pd.read_stata(file_path_obj, convert_categoricals=False)
         else:
@@ -397,7 +414,7 @@ async def repo_creation_handler(input, db, session):
                 if df_train.empty and df_test.empty and df_val.empty and not df_for_split.empty and sum(ratio_tuple) > 0:
                     raise ValueError("Dataset splitting resulted in all empty sets.")
                 p.set(message="Saving files...", value=3); await asyncio.sleep(0.1)
-                repo_dir = PROJECT_ROOT_DATA_DIR / user.username / new_repo_name_val
+                repo_dir = PROJECT_ROOT_DATA_DIR / _user_data_dir_segment(user) / new_repo_name_val
                 repo_dir.mkdir(parents=True, exist_ok=True)
                 df_train.to_csv(repo_dir / "train.csv", index=False)
                 df_test.to_csv(repo_dir / "test.csv", index=False)
@@ -410,9 +427,12 @@ async def repo_creation_handler(input, db, session):
                                       split_ratio_selection=ratio_str)
                 db.add(new_repo); db.commit(); db.refresh(new_repo)
                 db.add_all([ Dataset(repository_id=new_repo.id, dataset_type=dt, 
-                                     location=f"{user.username}/{new_repo_name_val}/{dt}.csv")
+                                     location=f"{_user_data_dir_segment(user)}/{new_repo_name_val}/{dt}.csv")
                              for dt in ["train", "test", "validation"] ])
                 db.commit()
+                await _dropbox_sync_data_paths(
+                    [repo_dir / "train.csv", repo_dir / "test.csv", repo_dir / "validation.csv"]
+                )
                 p.set(message="Done!", value=5); await asyncio.sleep(0.2)
                 ui.modal_remove()
                 ui.notification_show("Repository created successfully.", type="message")
@@ -633,7 +653,7 @@ async def upload_split_handler(input, db, data_dir=PROJECT_ROOT_DATA_DIR):
                 p.set(message="Re-splitting dataset...", value=1); await asyncio.sleep(0.1)
                 df_train, df_test, df_val = split_dataset(df_for_resplit.copy(), ratios=ratio_tuple, exclusive_id_column=exclusive_id_col_resplit)
                 p.set(message="Saving files...", value=2)
-                repo_path = Path(data_dir) / user.username / repo.repo_name; repo_path.mkdir(parents=True, exist_ok=True)
+                repo_path = Path(data_dir) / _user_data_dir_segment(user) / repo.repo_name; repo_path.mkdir(parents=True, exist_ok=True)
                 train_fp, test_fp, val_fp = repo_path/"train.csv", repo_path/"test.csv", repo_path/"validation.csv"
                 df_train.to_csv(train_fp, index=False); df_test.to_csv(test_fp, index=False); df_val.to_csv(val_fp, index=False); await asyncio.sleep(0.1)
                 p.set(message="Updating database...", value=3)
@@ -643,6 +663,7 @@ async def upload_split_handler(input, db, data_dir=PROJECT_ROOT_DATA_DIR):
                 repo.split_column = exclusive_id_col_resplit 
                 repo.split_ratio_selection = ratio_str_hyphen.replace("-",",") 
                 db.commit(); await asyncio.sleep(0.1)
+                await _dropbox_sync_data_paths([train_fp, test_fp, val_fp])
         except ValueError as ve: 
             logger.warning(f"[RESPLIT] Validation error during re-split: {ve}", exc_info=True)
             ui.notification_show(f"{ve}", type="error", duration=10); return 
@@ -696,7 +717,7 @@ async def upload_analysis_handler(input, db, data_dir=PROJECT_ROOT_DATA_DIR):
             ui.notification_show(f"Missing data: {', '.join(missing)}.", type="error", duration=7); return
         repo = db.query(Repository).filter_by(id=repo_id, user_id=user.id).first()
         if not repo: ui.notification_show("Repo not found or access denied.", type="error", duration=7); return
-        upload_path = Path(data_dir) / user.username / repo.repo_name; upload_path.mkdir(parents=True, exist_ok=True)
+        upload_path = Path(data_dir) / _user_data_dir_segment(user) / repo.repo_name; upload_path.mkdir(parents=True, exist_ok=True)
         orig_name = Path(fileinfo[0]["name"]); filename = f"analysis{orig_name.suffix.lower()}"
         full_path = upload_path / filename
         try:
@@ -710,6 +731,7 @@ async def upload_analysis_handler(input, db, data_dir=PROJECT_ROOT_DATA_DIR):
                 db.commit() 
                 new_ds = Dataset(repository_id=repo.id, dataset_type="analysis", location=str(full_path.relative_to(data_dir)))
                 db.add(new_ds); db.commit(); await asyncio.sleep(0.1)
+                await _dropbox_sync_data_paths([full_path])
         except Exception as e: 
             logger.error(f"Err uploading analysis for repo {repo.id}: {e}", exc_info=True)
             ui.notification_show(f"Err uploading analysis: {e}", type="error", duration=7); return
@@ -897,9 +919,21 @@ def delete_repo(db, repo_id):
     if not repo:
         raise ValueError(f"Repository with ID {repo_id} not found.")
 
-    for dataset in repo.datasets:
+    owner = db.query(User).filter_by(id=repo.user_id).first()
+    if owner:
+        from utils.dropbox_token import is_dropbox_configured
+
+        if is_dropbox_configured():
+            from utils.dropbox_data import delete_repo_data_folder
+
+            delete_repo_data_folder(owner.id, repo.repo_name)
+        repo_dir = PROJECT_ROOT_DATA_DIR / _user_data_dir_segment(owner) / repo.repo_name
+        if repo_dir.is_dir():
+            shutil.rmtree(repo_dir, ignore_errors=True)
+
+    for dataset in list(repo.datasets):
         db.delete(dataset)
-    
+
     db.delete(repo)
     db.commit()
 

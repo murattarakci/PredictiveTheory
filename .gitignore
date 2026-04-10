@@ -182,3 +182,6 @@ sample_scripts
 *.xlsx
 *.db
 .Rproj.user
+
+
+logs/

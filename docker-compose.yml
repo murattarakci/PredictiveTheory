@@ -1,0 +1,24 @@
+# Local stress test: 1 GiB RAM, 2 CPUs, 1 GiB tmpfs for ./data (uploads).
+# From repo root: docker compose up --build
+# Open http://localhost:8500
+#
+# For limits that always apply on every Docker engine, use:
+#   chmod +x docker/run-constrained.sh && ./docker/run-constrained.sh
+
+services:
+  shiny:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: predictivetheory:local
+    ports:
+      - "8500:8500"
+    tmpfs:
+      - /app/data:size=1g,mode=1777
+    environment:
+      PYTHONUNBUFFERED: "1"
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1G

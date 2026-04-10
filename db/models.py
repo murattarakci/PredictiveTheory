@@ -1,6 +1,8 @@
 import logging
-import os
 import uuid
+
+from sqlalchemy import event
+from sqlalchemy.orm import Session as OrmSession
 from datetime import datetime, timezone
 from pathlib import Path # <--- IMPORT PATH HERE
 from sqlalchemy import (
@@ -92,6 +94,21 @@ DB_DIR = Path(__file__).resolve().parent # poc.db will be in the same directory 
 db_path = DB_DIR / 'poc.db'
 engine = create_engine(f"sqlite:///{db_path}", echo=False) # Set echo=True for SQL debugging
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+@event.listens_for(OrmSession, "after_commit")
+def _push_sqlite_to_dropbox_after_commit(_session: OrmSession) -> None:
+    from utils.dropbox_token import is_dropbox_configured
+
+    if not is_dropbox_configured():
+        return
+    try:
+        from utils.dropbox_sqlite import upload_database_to_dropbox
+
+        upload_database_to_dropbox()
+    except Exception:
+        logging.getLogger("app_debug").exception("Dropbox: post-commit upload failed")
+
 
 def init_db():
     Base.metadata.create_all(engine)
