@@ -23,7 +23,7 @@ from pathlib import Path
 import asyncio
 import logging # Import logging
 
-PROJECT_ROOT_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+from paths import DATA_DIR as PROJECT_ROOT_DATA_DIR
 logger = logging.getLogger("app_debug") # Get logger instance for main server if needed
 
 def server(input: Inputs, output: Outputs, session: Session):

@@ -10,19 +10,12 @@ from pathlib import Path
 
 logger = logging.getLogger("app_debug")
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-LOCAL_DATA_DIR = PROJECT_ROOT / "data"
+from paths import DATA_DIR as LOCAL_DATA_DIR
 
 
 def _dropbox_client():
-    from utils.dropbox_token import get_dropbox_access_token
-
-    token = get_dropbox_access_token()
-    if not token:
-        return None
-    import dropbox
-
-    return dropbox.Dropbox(oauth2_access_token=token)
+    from utils.dropbox_token import get_dropbox_client
+    return get_dropbox_client()
 
 
 def remote_data_prefix() -> str:
@@ -76,6 +69,9 @@ def download_data_from_dropbox() -> None:
     base = remote_data_prefix()
     try:
         res = dbx.files_list_folder(base, recursive=True)
+    except dropbox.exceptions.AuthError as e:
+        logger.warning("Dropbox data: auth failed (token expired?): %s — skipping data download", e)
+        return
     except dropbox.exceptions.ApiError as e:
         err = str(e).lower()
         if "not_found" in err or "path/not_found" in err:

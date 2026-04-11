@@ -18,7 +18,9 @@ from utils.split import split_dataset
 import pyreadr
 import shutil
 
-log_path = Path(__file__).resolve().parent / "debug_modal_state.log"
+from paths import LOG_DIR, DATA_DIR
+
+log_path = LOG_DIR / "debug_modal_state.log"
 logger = logging.getLogger("app_debug")
 logger.setLevel(logging.DEBUG)
 if not logger.handlers:
@@ -29,8 +31,7 @@ if not logger.handlers:
 logger.info("Logger initialized for handlers.py")
 
 # --- Module-Level Constants and Helpers ---
-PROJECT_ROOT_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-PROJECT_ROOT_DATA_DIR.mkdir(parents=True, exist_ok=True)
+PROJECT_ROOT_DATA_DIR = DATA_DIR  # writable on shinyapps.io (from paths.py)
 
 
 async def _dropbox_sync_data_paths(paths: list[Path]) -> None:

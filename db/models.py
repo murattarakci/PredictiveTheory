@@ -90,8 +90,8 @@ class AccessLog(Base):
     def __repr__(self):
         return f"<AccessLog(id={self.id}, user_id={self.user_id}, repo_id={self.repository_id}, action='{self.action}')>"
 
-DB_DIR = Path(__file__).resolve().parent # poc.db will be in the same directory as models.py (db/)
-db_path = DB_DIR / 'poc.db'
+from paths import DB_PATH as db_path  # writable on shinyapps.io
+
 engine = create_engine(f"sqlite:///{db_path}", echo=False) # Set echo=True for SQL debugging
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
