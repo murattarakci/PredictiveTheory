@@ -1,94 +1,102 @@
-# Predictive Theorizing And Testing based dataset management for research and analyses
+# Predictive Theory: a lockbox for testing whether findings hold on new data
 
-### Run Project - POC
+This repository holds the research tool behind our proposal *Predictive Testing in the Age of AI: A Tool for Separating Generalizable Theory from Noise*, submitted to the *Organization Science* special issue "AI-Enabled Frontiers in Organizational Science."
 
-#### Imp Note : Delete poc.db before running the latest dev code
+**Live instance:** https://academic.shinyapps.io/predictivetheorizing/
 
-1. python -m db.init_db
-2. python -m db.seed_users
-3. shiny run --reload app --port 8500 
+## Why we built it
 
+A theory should hold on data it has not seen. A relationship that fits one sample and fails on the next has described that sample, not explained anything.
 
-## Requirement
+AI makes this harder. An AI agent can run hundreds of regressions in minutes. Ask it to find a significant link between corporate social performance and financial performance, and it will try one measure, then another, add and drop controls, and stop at the first result that clears p < .05. That result may reflect the pattern in the data or just its noise. From the sample alone, nobody can tell.
 
-### From research team
-We are writing a paper on a very very simple idea: cross-validation. We ask management scholars to do cross-validation–no one does it. to support the paper, we want to create a repository, something similar to pre-registration like aspredicted.org https://researchbox.org/ or https://Predictive Theorizing And Testing.io/ The scholars should upload their data, the repo automatically splits the data into three: training, test and validation sets. keeps the last one, and return the scholar the training and test sets. the scholar can do all the analyses, upload the results and then is allowed to dowload the validation set. because storage is costly, our ideal scenario is to have something that can be integrated to researchbox.org or Predictive Theorizing And Testing.io However, for this submission, we just need a minimum viable product to impress the reviewers
+The field used to catch these results through replication: another team collects new data and tries again. That takes years. AI now produces new findings much faster than anyone can replicate them. We expect this to make two known problems worse: too many fragmented theories, and too many findings that do not replicate.
 
-### Restructured Requirement for POC
-For POC we can just have two types of users in the tool i.e. scholar and peer, scholar uploads a dataset, the tool splits the dataset into train, validation and test sets and creates a repo for the scholar.  The tool allows the scholar to download the train and test set from the repo, the scholar can then, upload all the analyses and results.
+Our answer is to set new data aside before the first regression runs. We split the data, let the researcher build and choose a model on part of it, and keep the rest locked until the researcher commits. The locked part then shows whether the finding holds.
 
-On uploading the analyses and results, the scholar is allowed to download the validation set from the repo.
+## What the tool does today
 
-Now scholar is also presented an option to make the repo public, this allows any peer user to download the datasets as well, else only scholar has access.
+1. **Create a repository.** Sign in, name the project, and upload a dataset (CSV, Excel, Stata, or R).
+2. **Choose the split.** Pick a ratio (60-20-20, 70-15-15, or 80-10-10) for training, test, and validation sets. You can name an ID column, such as a firm code, so that all rows of one firm land in the same set. A preview shows the size of each set before you commit.
+3. **Download training and test sets.** These are available at once.
+4. **Do your analysis.** Build and choose your model using only those two sets.
+5. **Upload your write-up.** A PDF or Word file describing the analysis.
+6. **Unlock the validation set.** It becomes available only after the write-up is uploaded.
 
-#### User stories
-1. By default, any user takes the role of peer and can see the Public datasets.
-2. On clicking any dataset (link), a pop up shows the file structure inside.
-3. peer can click download on the pop up to download the train and test sets
-4. Any user has an option to sign-in (hard coded for POC, else using Predictive Theorizing And Testing), to access their scholar profile
-5. scholar profile has a list of the repos uploaded by them
-6. on clicking any repo , they can see the internal file structure, with available download and upload options
-7. scholar can create a new repo, which lets them upload a raw dataset
-8. upon upload, train, test and validation sets are created by backend and scholar can download train. test sets only
-9. they can upload analyses based on the train and test sets
-10. for repos with uploaded analyses , scholar can download all 3 i.e. train, test and validation set
-11. scholar can make their repo public, which will show up in the list of repos any peer can see.
+Every upload, download, and view is time-stamped. Anyone checking your work can see that the analysis came before access to the validation data. Projects can be private, embargoed, or public. Visitors can download the training and test sets of public projects, and the validation set only after the owner has uploaded a write-up.
 
-### Technical Implementation
-1. System Architecture
- - Client Layer:
-    - Web(only) Interface: Handles user interactions and data presentation
-    - Authentication Service: Manages user authentication and role-based access control
+### How the split works
 
-2. Core Services Layer:
+- With an ID column, the tool shuffles the unique IDs and assigns each one to a single set, so no firm (or person) appears in two sets.
+- Without an ID column, it splits rows at random.
+- The random seed is fixed, so the same data and settings give the same split.
+- If a file has two columns with the same name, the tool keeps the version with the most non-missing and unique values.
+- You can re-split a project until you upload a write-up. After that the split is frozen.
 
-- Dataset Service: Manages dataset operations including splitting into train/validation/test sets
-- Repo Service: Controls repository creation and access permissions
+Split logic lives in `utils/split.py`.
 
-3. Storage Layer:
+### What it does not do yet
 
-- Database: Stores user information and repositories
-- File System: Maintains the actual datasets and analysis files
+- It does not score your model. It hands you the validation data, and you evaluate the model yourself.
+- It has no programming interface, so an AI agent cannot use it directly.
+- It records that you committed before looking. It cannot stop someone who already holds the full dataset from looking.
 
+## What we are building next
 
-## TODOS (Feedback 24/04/2025)
+These parts are planned and described in the proposal and its technical appendix.
 
-1.  ⁠loader for waiting for columns to appear once dataset has been upload - COMPLETED
-2. ⁠deduplication of column names(permno appears 2 times)
-3. ⁠⁠unique id is not needed but the selected column (e.g. permno) should be exclusive in train, test, val sets no repeat case.
-4. ⁠sholar cannot reupload same dataset once analysis is uploaded - Completed
-5. ⁠more guiding/walkthrough help
-6. ⁠Analysis has been uploaded information ( to justify validation set download) - Completed
-7. ⁠unlock .rda, csv, .xlsx, .dta  for dataset uploads - Completed
-8. upload analysis is a word/pdf , render it in the public set - Completed
-9. ⁠user can only leave column selection blank for random row spit or user can select one column (see point no 3)
-10. Generic info/use on main page
+- **A scoring layer.** Instead of releasing the validation data, the tool will score the committed model on it. The score looks at the finding the researcher cares about (for example, the coefficient on social performance), not just how well the model predicts the outcome overall. It reports where that score falls among all reasonable alternative models.
+- **A programming interface.** So that a script, an AI agent, or a person can upload data, receive training and test sets, commit a model, and receive a score, with every step logged.
+- **Experiments.** We will give AI agents the corporate social and financial performance data and different instructions ("find a significant result," "find the model most likely to hold on new firms"), vary how many models they may try, and score what they commit. We will compare them with human researchers doing the same task.
 
+## The benchmark
 
-## Dataset Column Handling and Splitting Logic 
+We rebuilt the 2,400 model specifications that Berchicci and King (2022, *Strategic Management Journal*) derived from six well-known studies of corporate social and financial performance, and scored them on firms held out from estimation. The R code is in a separate folder of our project files and will be added to this repository with the scored results. Compustat and KLD data are licensed and cannot be shared here; we will release the code, the scores, and synthetic data that anyone can use.
 
-Here's a breakdown of how it addresses the "repeated columns" and "unique IDs" concern for column selection:
+## Run it on your own computer
 
-No More Simple Suffixing for Display: Instead of just showing all columns with suffixes if they had duplicate names (e.g., permno, permno.1, permno.2)
+You need Python 3.11 (3.10 or newer works).
 
-Identifies Original Duplicates: It first figures out which columns in your uploaded file originally had the same name (e.g., two columns were both named "permno").
+```bash
+python3.11 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python -m db.init_db
+python -m db.seed_users
+shiny run --reload app --port 8500
+```
 
-Selects the "Best" Representative: If there were multiple columns with the same original name, the code now analyzes these versions. It selects the one that has:
-More non-missing data.
-More unique values (as a tie-breaker).
+Then open http://localhost:8500. If you change the database models, delete `db/poc.db` and run the two `db` commands again.
 
-Shows Only the "Best" or Original Unique Columns: The dropdown list for selecting the "Column for Exclusive Split" will then only show: Columns that had unique names from the start.
+### With Docker
 
-The single "best" representative column chosen from any group of originally duplicated columns.
-So, if your input file had columnA, columnB, columnA (where the two columnAs might have slightly different data), the process would be:
+```bash
+docker compose up --build
+```
 
-The system reads them, and pandas might initially name them columnA, columnB, columnA.1.
-The new logic in handlers.py identifies that columnA and columnA.1 originated from the same name ("columnA").
-It compares columnA and columnA.1 based on data content (non-missing values, unique values).
-Let's say columnA is determined to be "better" or more relevant.
-The dropdown you see for splitting will then show columnA (the chosen one) and columnB. It will not show columnA.1.
-This way, you get a cleaner list of columns to choose from, and for any original duplications, the system tries to pick the most data-rich version to offer for your ID-based split.
-preventing clutter from multiple versions of the same original column and guiding towards the most data-rich option for splits.
+Then open http://localhost:8500. The compose file limits the app to 1 GB of memory and 2 CPUs to mimic the hosted setup.
 
-If you choose "None (Random Split)" or do not select an column, the dataset will be split into train, test, and validation sets randomly based on the specified ratios, without ensuring exclusivity for any particular column's values.
+### Optional: keep data in Dropbox
 
+The hosted version stores its database and uploads in Dropbox so they survive restarts. To use this, copy `.env.example` to `.env` and fill in your own Dropbox app details. Never commit `.env`. Without it, the app keeps everything in local folders.
+
+## What is where
+
+| Path | Contents |
+|---|---|
+| `app.py` | Starts the app |
+| `ui_layout.py` | Page layout |
+| `server/` | App behavior: sign-in, project creation, uploads, downloads, dialogs |
+| `utils/split.py` | Training, test, and validation split |
+| `utils/dropbox_*.py` | Optional Dropbox storage |
+| `db/` | Database models and setup |
+| `paths.py` | Where the app writes files (local or hosted) |
+| `Dockerfile`, `docker-compose.yml`, `docker/` | Container setup |
+
+## Authors and contact
+
+Murat Tarakci, Rotterdam School of Management, Erasmus University. Questions and suggestions are welcome through GitHub issues.
+
+## References
+
+Berchicci, L., & King, A. A. (2022). Building knowledge by mapping model uncertainty in six studies of social and financial performance. *Strategic Management Journal*, 43(7), 1319–1346.
