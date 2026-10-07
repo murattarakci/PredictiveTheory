@@ -15,8 +15,8 @@
 #     rsconnect add \
 #       --account academic \
 #       --name academic \
-#       --token D800569686F93FD621126CE392EC5074 \
-#       --secret dEIIRMOfNU7s0ASIDQ8q3SWEdBwA9QSvgntJlaav
+#       --token <YOUR_SHINYAPPS_TOKEN> \
+#       --secret <YOUR_SHINYAPPS_SECRET>
 #
 #   Step 2 — Deploy the app:
 #
