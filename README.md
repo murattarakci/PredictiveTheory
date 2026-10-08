@@ -23,7 +23,7 @@ Our answer is to set new data aside before the first regression runs. We split t
 5. **Upload your write-up.** A PDF or Word file describing the analysis.
 6. **Unlock the validation set.** It becomes available only after the write-up is uploaded.
 
-Every upload, download, and view is time-stamped. Anyone checking your work can see that the analysis came before access to the validation data. Projects can be private, embargoed, or public. Visitors can download the training and test sets of public projects, and the validation set only after the owner has uploaded a write-up.
+The database records when each dataset and write-up was uploaded. Projects can be private, embargoed, or public. Visitors can download the training and test sets of public projects, and the validation set only after the owner has uploaded a write-up.
 
 ### How the split works
 
@@ -31,7 +31,7 @@ Every upload, download, and view is time-stamped. Anyone checking your work can 
 - Without an ID column, it splits rows at random.
 - The random seed is fixed, so the same data and settings give the same split.
 - If a file has two columns with the same name, the tool keeps the version with the most non-missing and unique values.
-- You can re-split a project until you upload a write-up. After that the split is frozen.
+- The interface lets you re-split a project until you upload a write-up. A server-side freeze is planned (see below).
 
 Split logic lives in `utils/split.py`.
 
@@ -39,19 +39,26 @@ Split logic lives in `utils/split.py`.
 
 - It does not score your model. It hands you the validation data, and you evaluate the model yourself.
 - It has no programming interface, so an AI agent cannot use it directly.
-- It records that you committed before looking. It cannot stop someone who already holds the full dataset from looking.
+- It does not yet keep a full record. Downloads are not logged, a new write-up replaces the old one, and re-splitting overwrites the earlier split.
+- The lock is checked in the interface, not on the server. The combined download currently includes the validation set before a write-up exists.
+- Every project uses the same random seed, so anyone holding the data can rebuild the split.
+- It cannot stop someone who already holds the full dataset from looking. The lock only binds when someone else (a journal, a data provider, or our test harness) holds the full data and you receive only the training and test sets.
 
 ## What we are building next
 
 These parts are planned and described in the proposal and its technical appendix.
 
+- **A trustworthy record (first).** Log every upload and download with a fingerprint (SHA-256 hash) of each file. Keep every version of every write-up and split. Check the lock on the server for every download. Give each project its own secret random seed. Store passwords securely. Add tests that try to get the validation set early.
+
 - **A scoring layer.** Instead of releasing the validation data, the tool will score the committed model on it. The score looks at the finding the researcher cares about (for example, the coefficient on social performance), not just how well the model predicts the outcome overall. It reports where that score falls among all reasonable alternative models.
 - **A programming interface.** So that a script, an AI agent, or a person can upload data, receive training and test sets, commit a model, and receive a score, with every step logged.
-- **Experiments.** We will give AI agents the corporate social and financial performance data and different instructions ("find a significant result," "find the model most likely to hold on new firms"), vary how many models they may try, and score what they commit. We will compare them with human researchers doing the same task.
+- **Experiments.** We will give AI agents synthetic data, where we know the true answer, and open data from many-analysts studies. Each agent gets an instruction ("find a significant result" or "find the model most likely to hold on new firms") and a cap on how many models it may try. We then score what it commits. We compare the agents' choices with the published choices of the human teams in those studies. Licensed data, such as Compustat, never go to hosted AI models.
 
 ## The benchmark
 
-We rebuilt the 2,400 model specifications that Berchicci and King (2022, *Strategic Management Journal*) derived from six well-known studies of corporate social and financial performance, and scored them on firms held out from estimation. The R code is in a separate folder of our project files and will be added to this repository with the scored results. Compustat and KLD data are licensed and cannot be shared here; we will release the code, the scores, and synthetic data that anyone can use.
+We rebuilt the 2,208 between-firm specifications that Berchicci and King (2022, *Strategic Management Journal*) derived from six well-known studies of corporate social and financial performance, and scored each one on firms held out from estimation. The code and the scores are in [`benchmark/`](benchmark/). Compustat and KLD data are licensed and are not included.
+
+In short: social performance is statistically significant in every return-on-assets specification. On firms the models have not seen, the effect shrinks to about half. For the 50 specifications that predict best, adding social performance does not detectably improve predictions for new firms.
 
 ## Run it on your own computer
 

@@ -1,0 +1,13 @@
+mean_roa ~ mean_HK_SM * RD + size_e + factor(sic_2) + factor(year) + roa_lag1 
+              Estimate Std. Error t value Pr(>|t|)
+(Intercept)     4.9793     0.6368  7.8194   0.0000
+mean_HK_SM      0.4200     0.1682  2.4962   0.0126
+RD            -16.6889     2.1640 -7.7121   0.0000
+size_e          0.3334     0.1162  2.8691   0.0041
+roa_lag1        0.3589     0.0284 12.6379   0.0000
+mean_HK_SM:RD  10.7942     2.0553  5.2519   0.0000
+observations 8854 | firms 1161 | R2 0.48 | adj R2 0.475 | RSE 5.41 | df 8772 
+industry FE levels: 51 | year FE levels: 27 
+ME 1.102 clustered SE 0.148 | ME on validation firms 0.547 clustered SE 0.311 
+test RMSE 5.527 (n 3071 ) | val RMSE 5.345 (n 2713 ) | val RMSE without CSP 5.288 
+mean R&D in estimation sample: 0.0632 

@@ -1,0 +1,35 @@
+universe: 2208 | ROA 1104 | MVA 1104 
+
+== mean_roa ==
+test RMSE 5.527 9.174 | val RMSE 5.122 8.548 
+test-val all: P 0.981 S 0.935 | lag=yes: P 0.703 S 0.679 | lag=no: P 0.898 S 0.802 | top200 S 0.359 
+cv-test P 0.997 | mean test RMSE lag yes/no 5.81 8.46 | mean test n lag yes/no 2922 3488 
+best by test: mean_roa ~ mean_HK_SM * RD + size_e + factor(sic_2) + factor(year) + roa_lag1 | val rank 165 of 1104 
+best by val: mean_roa ~ mean_WG + size_e + factor(sic_2) + factor(year) + roa_lag1 + mean_RD | test rank 20 
+top50 val range 5.122 5.45 | test spread 0.055 | median CV fold SD 0.462 
+top50 composition: lag 50 | yearFE 40 | sicFE 28 | moderation 34 | R&D present 50 
+train ME CI excl 0 (clustered): all 1104 | top50 50 | top50 ME train 1.066 1.613 
+validation ME CI excl 0 (clustered): all 588 | top50 38 | top50 ME val 0.404 1.005 
+sign agree all 0.995 | shrink ratio median all 0.52 | top50 range 0.29 0.79 median 0.63 
+coverage clustered all/top50 0.598 0.84 | conventional 0.014 0 
+CSP helps validation: all 714 of 1104 median 0.0188 median among helpful 0.0333 | top50 14 
+Spearman(test RMSE, CSP contribution): 0.112 
+
+== mean_mva ==
+test RMSE 216.603 329.184 | val RMSE 1845.443 2027.6 
+test-val all: P 0.472 S 0.512 | lag=yes: P 0.417 S 0.565 | lag=no: P 0.376 S 0.521 | top200 S -0.034 
+cv-test P 0.854 | mean test RMSE lag yes/no 268.93 255.21 | mean test n lag yes/no 2922 3488 
+best by test: mean_mva ~ MS4 + mean_RD | val rank 177 of 1104 
+best by val: mean_mva ~ mean_HR * RD + adv_exp + factor(year) | test rank 124 
+top50 val range 1857.198 1958.816 | test spread 13.119 | median CV fold SD 655.637 
+top50 composition: lag 16 | yearFE 27 | sicFE 0 | moderation 8 | R&D present 28 
+train ME CI excl 0 (clustered): all 0 | top50 0 | top50 ME train 135.93 188.287 
+validation ME CI excl 0 (clustered): all 0 | top50 0 | top50 ME val 338.921 579.184 
+sign agree all 1 | shrink ratio median all 2.45 | top50 range 2.48 3.45 median 3.05 
+coverage clustered all/top50 1 1 | conventional 0.033 0 
+CSP helps validation: all 1085 of 1104 median 12.4 median among helpful 12.5 | top50 50 
+Spearman(test RMSE, CSP contribution): -0.262 
+
+== bootstrap of CSP contribution on validation firms ( 1000 firm resamples) ==
+top50 point range -0.061 0.041 | CI excludes 0 and positive: 0 | CI excludes 0 and negative: 0 | CI includes 0: 50 
+best-by-test: point -0.056 CI [ -0.224 , 0.086 ]

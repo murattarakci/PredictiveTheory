@@ -185,3 +185,6 @@ sample_scripts
 
 
 logs/
+# Benchmark: data and result tables stay local
+benchmark/Data/
+.RData
